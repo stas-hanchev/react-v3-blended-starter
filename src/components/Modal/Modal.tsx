@@ -1,13 +1,41 @@
+import { useEffect, type MouseEvent, type ReactNode } from "react";
 import styled from "./Modal.module.css";
 
-export default function Modal() {
+interface ModalProps { 
+  children: ReactNode;
+  onClose: () => void;
+}
+
+export default function Modal({children, onClose}: ModalProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { 
+        onClose();
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    }
+  }, [onClose]);
+
+  const handleBackDropClose = (e: MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  }
+  
   return (
-    <div className={styled.backdrop} role="dialog" aria-modal="true">
+    <div className={styled.backdrop} role="dialog" aria-modal="true" onClick={handleBackDropClose}>
       <div className={styled.modal}>
-        <button className={styled.closeButton} aria-label="Close modal">
+        <button className={styled.closeButton} aria-label="Close modal" onClick={onClose}>
           &times;
         </button>
-        {/* children */}
+        {children }
       </div>
     </div>
   );
