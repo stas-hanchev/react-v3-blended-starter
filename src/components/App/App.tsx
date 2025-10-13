@@ -2,7 +2,7 @@ import Section from "../Section/Section";
 import Container from "../Container/Container";
 import Form from "../Form/Form";
 import toast, { Toaster } from "react-hot-toast";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { Photo } from '../../types/photo';
 
@@ -12,14 +12,19 @@ import Text from "../Text/Text";
 import PhotosGallery from "../PhotosGallery/PhotosGallery";
 // import Modal from "../Modal/Modal";
 import ImageModal from "../ImageModal";
+import Button from "../Button/Button";
 
 export default function App() {
-  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [images, setImages] = useState<Photo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
   const [modalIsOpen, setIsOpen] = useState(false);
+
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [isVisible, setIsVisible] = useState(false);
 
   const handleSelectedPhoto = (photo: Photo | null) => {
     setIsOpen(true);
@@ -31,22 +36,37 @@ export default function App() {
     setSelectedPhoto(null);
   }
 
-  const handleSubmit = async (query: string) => {
-    try {
-      setIsError(false);
-      setIsLoading(true);
-      const fetchedPhotos = await getPhotos(query);
-      if (!fetchedPhotos.length) {
-        toast.error('For this request photos is not available!');
-        return;
+  const handleSubmit = async (newQuery: string) => {
+    setQuery(newQuery);
+    setIsError(false);
+    setImages([]);
+    setPage(1);
+  }
+
+  useEffect(() => {
+    if (!query) return;
+    const fetchPhotos = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getPhotos(query, page);
+        if (!data.photos.length) {
+          toast.error('For this request photos is not available!');
+          return;
+        }
+        setImages(prev => [...prev, ...data.photos]);
+        setIsVisible(page < Math.ceil(data.total_results / data.per_page));
+      } catch (error) {
+        setIsError(true);
+        console.error(`Error`, error);
+      } finally {
+        setIsLoading(false);
       }
-      setPhotos(fetchedPhotos);
-    } catch (error) {
-      setIsError(true);
-      console.error(`Error`, error);
-    } finally {
-      setIsLoading(false);
     }
+    fetchPhotos();
+  }, [page, query]);
+
+  const onLoadMore = () => {
+    setPage(prevPage => prevPage + 1);
   }
   
   return (
@@ -56,7 +76,7 @@ export default function App() {
           <Form onSubmit={handleSubmit}></Form>
           {isLoading && <Loader />}
           {isError && <Text>Sorry, something went wrong!</Text>}
-          {photos.length > 0 && <PhotosGallery photos={photos} handleSelectedPhoto={handleSelectedPhoto} />}
+          {images.length > 0 && <PhotosGallery photos={images} handleSelectedPhoto={handleSelectedPhoto} />}
           {/* {selectedPhoto && <Modal onClose={() => setSelectedPhoto(null)}>
             <div
               style={{
@@ -68,6 +88,7 @@ export default function App() {
           </Modal> } */}
           <ImageModal modalIsOpen={modalIsOpen} closeModal={closeModal} selectedPhoto={selectedPhoto} />
         </Container>
+        {isVisible && <Button onClick={onLoadMore} disabled={isLoading}>{isLoading ? "Loading..." : "Load more"}</Button>}
       </Section>
       <Toaster></Toaster>
     </>
