@@ -10,7 +10,8 @@ import { getPhotos } from "../../services/photos";
 import Loader from "../Loader/Loader";
 import Text from "../Text/Text";
 import PhotosGallery from "../PhotosGallery/PhotosGallery";
-import Modal from "../Modal/Modal";
+// import Modal from "../Modal/Modal";
+import ImageModal from "../ImageModal";
 
 export default function App() {
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -18,8 +19,16 @@ export default function App() {
   const [isError, setIsError] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
 
+  const [modalIsOpen, setIsOpen] = useState(false);
+
   const handleSelectedPhoto = (photo: Photo | null) => {
+    setIsOpen(true);
     setSelectedPhoto(photo);
+  }
+
+  const closeModal = () => {
+    setIsOpen(false);
+    setSelectedPhoto(null);
   }
 
   const handleSubmit = async (query: string) => {
@@ -48,7 +57,7 @@ export default function App() {
           {isLoading && <Loader />}
           {isError && <Text>Sorry, something went wrong!</Text>}
           {photos.length > 0 && <PhotosGallery photos={photos} handleSelectedPhoto={handleSelectedPhoto} />}
-          {selectedPhoto && <Modal onClose={() => setSelectedPhoto(null)}>
+          {/* {selectedPhoto && <Modal onClose={() => setSelectedPhoto(null)}>
             <div
               style={{
                 backgroundColor: selectedPhoto.avg_color,
@@ -56,7 +65,8 @@ export default function App() {
               }}>
               <img src={selectedPhoto.src.large} alt={selectedPhoto.alt} />
             </div>
-          </Modal> }
+          </Modal> } */}
+          <ImageModal modalIsOpen={modalIsOpen} closeModal={closeModal} selectedPhoto={selectedPhoto} />
         </Container>
       </Section>
       <Toaster></Toaster>
