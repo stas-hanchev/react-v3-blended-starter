@@ -15,15 +15,18 @@ import EditPostForm from "../EditPostForm/EditPostForm";
 export default function App() {
   const [query, setQuery] = useState<string>('');
   const [page, setPage] = useState<number>(1);
-  
   const [debouncedQuery] = useDebounce(query, 500);
   
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  
-  const [isCreatePost, setIsCreatePost] = useState<boolean>(false);
-  
-  const [isEditPost, setIsEditPost] = useState<boolean>(false);
-  const [editedPost, setEditedPost] = useState<Post | null>(null);
+  // Об'єднуємо стани модалки для створення і редагування поста
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    mode: 'create' | 'edit' | null;
+    editedPost: Post | null;
+  }>({
+    isOpen: false,
+    mode: null,
+    editedPost: null,
+  });
 
   const { data } = useQuery({
     queryKey: ['posts', debouncedQuery, page],
@@ -32,58 +35,59 @@ export default function App() {
   });
 
   const handleSearch = (newQuery: string) => {
-    // console.log(query);
     setQuery(newQuery);
     setPage(1);
-  }
+  };
 
   const toggleModal = () => {
-    setIsModalOpen(!isModalOpen);
-  }
+    setModalState((prev) => ({ ...prev, isOpen: !prev.isOpen }));
+  };
 
-  const toggleCreatePost = () => {
-    setIsCreatePost(!isCreatePost);
-  }
+  const openCreatePost = () => {
+    setModalState({ isOpen: true, mode: 'create', editedPost: null });
+  };
 
-  const toggleEditPost = (postToEdit?: Post) => {
-    if (postToEdit) {
-      setEditedPost(postToEdit);
-    }
-    setIsEditPost(!isEditPost);
-  }
+  const openEditPost = (postToEdit: Post) => {
+    setModalState({ isOpen: true, mode: 'edit', editedPost: postToEdit });
+  };
+
+  const closeModal = () => {
+    setModalState({ isOpen: false, mode: null, editedPost: null });
+  };
 
   const posts = data?.posts ?? [];
-  const totalPages = data?.totalCount ? Math.ceil(data.totalCount / 8) : 0
+  const totalPages = data?.totalCount ? Math.ceil(data.totalCount / 8) : 0;
 
   return (
     <div className={css.app}>
       <header className={css.toolbar}>
         <SearchBox value={query} onSearch={handleSearch} />
-        { totalPages > 1 && <Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage}/>}
-        <button className={css.button} onClick={() => {
-          toggleModal();
-          toggleCreatePost();
-        }}>Create post</button>
+        {totalPages > 1 && (
+          <Pagination totalPages={totalPages} currentPage={page} onPageChange={setPage} />
+        )}
+        <button className={css.button} onClick={openCreatePost}>Create post</button>
       </header>
-      {isModalOpen && <Modal onClose={/*toggleModal*/ () => {
-          toggleModal();
-          toggleCreatePost();
-      }}>{
-          isCreatePost && <CreatePostForm onClose={() => {
-            toggleModal();
-            toggleCreatePost();
-          }}></CreatePostForm>}
-        {isEditPost && <EditPostForm
-          initialValues={editedPost!}
-          onClose={() => {
-            toggleModal();
-            toggleEditPost();
-            setEditedPost(null);
-          }}
-        >
-        </EditPostForm>}  
-      </Modal>}
-      {posts.length > 0 && <PostList posts={posts} toggleModal={toggleModal} toggleEditPost={toggleEditPost} />}
+      {modalState.isOpen && (
+        <Modal onClose={closeModal}>
+          {modalState.mode === 'create' && (
+            <CreatePostForm onClose={closeModal} />
+          )}
+          {modalState.mode === 'edit' && modalState.editedPost && (
+            <EditPostForm
+              initialValues={modalState.editedPost}
+              onClose={closeModal}
+            />
+          )}
+        </Modal>
+      )}
+      {posts.length > 0 && (
+        <PostList
+          posts={posts}
+          toggleModal={toggleModal}
+          openEditPost={openEditPost}
+        />
+      )}
     </div>
   );
 }
+

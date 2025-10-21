@@ -6,10 +6,10 @@ import { deletePost } from "../../services/postService";
 interface PostListProps { 
   posts: Post[];
   toggleModal: () => void;
-  toggleEditPost: (editPost?: Post) => void; 
+  openEditPost: (postToEdit: Post) => void; 
 }
 
-export default function PostList({ posts, toggleModal, toggleEditPost }: PostListProps) {
+export default function PostList({ posts, toggleModal, openEditPost }: PostListProps) {
   const queryClient = useQueryClient();
   const { mutate } = useMutation({
     mutationFn: deletePost,
@@ -28,7 +28,7 @@ export default function PostList({ posts, toggleModal, toggleEditPost }: PostLis
         <div className={css.footer}>
             <button className={css.edit} onClick={() => {
               toggleModal();
-              toggleEditPost(post);
+              openEditPost(post);
             }}>Edit</button>
           <button className={css.delete} onClick={() => mutate(post.id)}>Delete</button>
         </div>
